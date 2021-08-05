@@ -4,38 +4,43 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-playground/form"
+	"github.com/gorilla/schema"
 )
 
 type RequestParams struct {
-	Player1 *int `json:"player1,omitempty"`
-	Player2 *int `json:"player2,omitempty"`
+	Player1 *string `schema:"player1"`
+	Player2 *string `schema:"player2"`
 }
 
-func (r RequestParams) IsValid() (bool, error) {
+func (r RequestParams) IsValid() error {
 	if r.Player1 == nil {
-		return false, fmt.Errorf("player1 is missing")
+		return fmt.Errorf("o parâmetro player1 é obrigatório")
 	}
 
 	if r.Player2 == nil {
-		return false, fmt.Errorf("player2 is missing")
+		return fmt.Errorf("o parâmetro player2 é obrigatório")
 	}
 
-	return true, nil
+	return nil
 }
 
 func ValidateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rp RequestParams
 
-		decoder := form.NewDecoder()
+		decoder := schema.NewDecoder()
 		err := decoder.Decode(&rp, r.URL.Query())
-		fmt.Println(err)
-		fmt.Println(rp.IsValid())
 
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Os parâmetros player1 e player2 são obrigatórios")
+			fmt.Fprintf(w, "Os parâmetros estão incorretos")
+			return
+		}
+
+		err = rp.IsValid()
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, err)
 			return
 		}
 		next.ServeHTTP(w, r)
