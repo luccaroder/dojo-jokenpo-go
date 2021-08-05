@@ -29,18 +29,15 @@ func ValidateMiddleware(next http.Handler) http.Handler {
 		var rp RequestParams
 
 		decoder := schema.NewDecoder()
-		err := decoder.Decode(&rp, r.URL.Query())
-
-		if err != nil {
+		if err := decoder.Decode(&rp, r.URL.Query()); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Os parâmetros estão incorretos")
+			w.Write([]byte("Os parâmetros estão incorretos"))
 			return
 		}
 
-		err = rp.IsValid()
-		if err != nil {
+		if err := rp.IsValid(); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintln(w, err)
+			w.Write([]byte(err.Error()))
 			return
 		}
 		next.ServeHTTP(w, r)
